@@ -2,36 +2,71 @@ package prereqchecker;
 
 import java.util.*;
 
-/**
- * Steps to implement this class main method:
- * <p>
- * Step 1:
- * AdjListInputFile name is passed through the command line as args[0]
- * Read from AdjListInputFile with the format:
- * 1. a (int): number of courses in the graph
- * 2. a lines, each with 1 course ID
- * 3. b (int): number of edges in the graph
- * 4. b lines, each with a source ID
- * <p>
- * Step 2:
- * EligibleInputFile name is passed through the command line as args[1]
- * Read from EligibleInputFile with the format:
- * 1. c (int): Number of courses
- * 2. c lines, each with 1 course ID
- * <p>
- * Step 3:
- * EligibleOutputFile name is passed through the command line as args[2]
- * Output to EligibleOutputFile with the format:
- * 1. Some number of lines, each with one course ID
- */
 public class Eligible {
     public static void main(String[] args) {
-
         if (args.length < 3) {
             StdOut.println("Execute: java -cp bin prereqchecker.Eligible <adjacency list INput file> <eligible INput file> <eligible OUTput file>");
             return;
         }
+        String adjListInputFile = args[0];
+        String eligibleInputFile = args[1];
+        String eligibleOutputFile = args[2];
 
-        // WRITE YOUR CODE HERE
+        HashMap<String, List<String>> graph = new HashMap<>();
+        GraphBuilder.constructGraph(adjListInputFile, graph);
+
+        Set<String> completedCourses = new HashSet<>();
+        readCompletedCourses(eligibleInputFile, completedCourses);
+
+        includeAllPrerequisites(graph, completedCourses);
+
+        List<String> eligibleCourses = findEligibleCourses(graph, completedCourses);
+
+        writeEligibleCourses(eligibleOutputFile, eligibleCourses);
+    }
+
+    private static void readCompletedCourses(String inputFile, Set<String> completedCourses) {
+        StdIn.setFile(inputFile);
+        int numOfCourses = StdIn.readInt();
+        for (int i = 0; i < numOfCourses; i++) {
+            completedCourses.add(StdIn.readString());
+        }
+    }
+
+    private static void includeAllPrerequisites(HashMap<String, List<String>> graph, Set<String> completedCourses) {
+        Set<String> toExplore = new HashSet<>(completedCourses);
+
+        while (!toExplore.isEmpty()) {
+            Set<String> newCourses = new HashSet<>();
+            for (String course : toExplore) {
+                List<String> prereqs = graph.get(course);
+                if (prereqs != null) {
+                    for (String prereq : prereqs) {
+                        if (completedCourses.add(prereq)) {
+                            newCourses.add(prereq);
+                        }
+                    }
+                }
+            }
+            toExplore = newCourses;
+        }
+    }
+
+    private static List<String> findEligibleCourses(HashMap<String, List<String>> graph, Set<String> completedCourses) {
+        List<String> eligibleCourses = new ArrayList<>();
+        for (String course : graph.keySet()) {
+            if (!completedCourses.contains(course) && completedCourses.containsAll(graph.get(course))) {
+                eligibleCourses.add(course);
+            }
+        }
+        return eligibleCourses;
+    }
+
+    private static void writeEligibleCourses(String outputFile, List<String> eligibleCourses) {
+        StdOut.setFile(outputFile);
+        for (String course : eligibleCourses) {
+            StdOut.println(course);
+        }
+        StdOut.close();
     }
 }
